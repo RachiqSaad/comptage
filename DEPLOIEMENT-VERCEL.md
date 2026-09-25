@@ -40,7 +40,7 @@ Dans Vercel Storage, créer ou relier un **Blob Store public**, puis associer so
 
 L’interface limite les CSV et photos à **4 Mo**, afin de rester sous la limite de requête Vercel de 4,5 Mo avec les données du formulaire. Le réglage Next.js de 20 Mo ne contourne pas cette limite Vercel.
 
-Diviser les gros CSV en plusieurs fichiers, chacun avec `EAN;code article;désignation` en première ligne. Réduire la taille des photos avant envoi. Un import reste transactionnel : une erreur annule les modifications de cet import.
+Diviser les gros CSV en plusieurs fichiers, chacun avec `EAN;code article;désignation` en première ligne. Les photos sont automatiquement converties en JPEG et redimensionnées dans le navigateur (2400 pixels maximum sur le grand côté), puis compressées sous 4 Mo avant envoi. Les formats illisibles affichent un message invitant à choisir une image JPEG ou PNG. Un import reste transactionnel : une erreur annule les modifications de cet import.
 
 ## Vérification après déploiement
 
