@@ -26,7 +26,7 @@ export default async function Admin({searchParams}:{searchParams:Promise<{import
   ]);
   const n=new Map(counts.rows.map(x=>[x.id,x.articles]));
   return <main className="shell">
-    <header className="top"><b className="brand">Administration</b><div className="row"><Link className="pill" href="/admin/recap">Récapitulatif</Link><form action={logout}><button className="pill">Quitter</button></form></div></header>
+    <header className="top"><b className="brand">Administration</b><div className="row"><Link className="pill" href="/admin/recap">Comptage et historique</Link><form action={logout}><button className="pill">Quitter</button></form></div></header>
     <h1 className="big">Configuration</h1><p className="muted">Dépôts, travées, codes agents et bases articles.</p>
     <section className="card"><h2>Créer un dépôt</h2><form action={addDepot}><label className="label">Nom du dépôt</label><div className="row"><input className="input" name="name" required placeholder="Dépôt Candy"/><button className="btn">Créer</button></div></form></section>
     <section className="card"><h2>Nouvelle liste de présence</h2><p className="muted">Archive la liste ouverte de ce dépôt et en ouvre une nouvelle.</p><form action={newExercise}><label className="label">Dépôt</label><select className="select" name="depot">{d.rows.map(x=><option key={x.id} value={x.id}>{x.name}{open.rows.some(o=>o.depot_id===x.id)?" · liste ouverte":" · aucune liste ouverte"}</option>)}</select><button className="btn secondary" style={{marginTop:12}}>Créer une nouvelle liste</button></form></section>

@@ -1,6 +1,10 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import ScanHistory from "@/app/ScanHistory";
+import { Filters } from "@/lib/report";
 export const dynamic="force-dynamic";
-export default async function Recap(){const s=await getSession();if(s.role!=="ADMIN")redirect("/admin/login");const r=await db.query("select d.id,d.name depot,e.id exercise,e.status,e.created_at,(select count(*)::int from presences p where p.exercise_id=e.id) total,(select count(*)::int from presences p where p.exercise_id=e.id and p.article_id is null) unknown from depots d left join lateral(select id,status,created_at from exercises where depot_id=d.id order by created_at desc limit 1) e on true where d.active order by d.name");return <main className="shell"><header className="top"><Link className="pill" href="/admin">← Administration</Link><b className="brand">Récapitulatif</b></header><h1 className="big">Présences relevées</h1><p className="muted">Dernière liste enregistrée par dépôt. Aucun total de quantité.</p>{r.rows.map(x=><section className="card" key={x.id}><div className="eyebrow">{x.depot}</div><h2>{x.exercise?new Date(x.created_at).toLocaleString("fr-FR"):"Aucune liste"}</h2>{x.exercise?<><p><b>{x.total}</b> présences · <b>{x.unknown}</b> EAN à vérifier · <span className="pill">{x.status==="OPEN"?"En cours":"Terminée"}</span></p><a className="btn secondary" style={{textDecoration:"none"}} href={`/api/export?depot=${x.id}`}>Télécharger le CSV</a></>:<p className="muted">Aucun exercice créé pour ce dépôt.</p>}</section>)}</main>}
+export default async function Recap({searchParams}:{searchParams:Promise<Filters>}) {
+  const s=await getSession();if(s.role!=="ADMIN")redirect("/admin/login");
+  return <main className="shell wide"><header className="top"><b className="brand">Comptage · Administration</b><Link className="pill" href="/admin">Configuration</Link></header><h1 className="big">Comptage et historique</h1><p className="muted">Consultez les listes de tous les dépôts, y compris les listes archivées.</p><ScanHistory filters={await searchParams} admin/></main>;
+}

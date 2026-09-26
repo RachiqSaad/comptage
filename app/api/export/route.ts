@@ -1,6 +1,14 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+﻿import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+import { reportRows, Filters } from "@/lib/report";
 export const dynamic="force-dynamic";
-function quote(value:unknown){return `"${String(value??"").replaceAll('"','""')}"`}
-export async function GET(req:Request){const s=await getSession();if(s.role!=="ADMIN")return new NextResponse("Non autorisé",{status:401});const depot=new URL(req.url).searchParams.get("depot");if(!depot)return new NextResponse("Dépôt requis",{status:400});const r=await db.query("select d.name depot,s.code travee,l.code emplacement,p.ean,coalesce(ar.article_code,'') article_code,coalesce(ar.designation,'EAN inconnu') designation,case when ar.id is null then 'A_VERIFIER' else 'RECONNU' end statut,p.scanned_at,ag.name agent,coalesce(lp.url,'') photo from presences p join exercises e on e.id=p.exercise_id join depots d on d.id=e.depot_id join locations l on l.id=p.location_id join aisles s on s.id=l.aisle_id join agents ag on ag.id=p.agent_id left join articles ar on ar.id=p.article_id left join lateral(select url from label_photos where presence_id=p.id order by created_at desc limit 1) lp on true where e.id=(select id from exercises where depot_id=$1 order by created_at desc limit 1) order by s.code,l.seq,p.scanned_at",[depot]);const headers=["Dépôt","Travée","Emplacement","EAN scanné","Code article","Désignation","Statut","Date scan","Agent","Photo étiquette"];const lines=[headers,...r.rows.map(x=>[x.depot,x.travee,x.emplacement,x.ean,x.article_code,x.designation,x.statut,new Date(x.scanned_at).toISOString(),x.agent,x.photo])].map(row=>row.map(quote).join(";"));return new NextResponse("\uFEFF"+lines.join("\r\n"),{headers:{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":"attachment; filename=presence-depot.csv","Cache-Control":"no-store"}})}
+function quote(value:unknown){let text=String(value??"");if(/^[\s]*[=+@-]/.test(text))text="'"+text;return `"${text.replaceAll('"','""')}"`;}
+export async function GET(req:Request){
+  const s=await getSession();if(s.role!=="ADMIN")return new NextResponse("Non autorisé",{status:401});
+  const params=new URL(req.url).searchParams;
+  const filters:Filters={};for(const key of ["depot","exercise","agent","q"] as const)filters[key]=params.get(key)||undefined;
+  const result=await reportRows(filters,undefined,false);
+  const headers=["Dépôt","Travée","Emplacement","EAN scanné","Code article","Désignation","Statut article","Date scan UTC","Agent","Liste créée UTC","Statut liste","Photo étiquette"];
+  const lines=[headers,...result.rows.map(r=>[r.depot,r.travee,r.emplacement,r.ean,r.article_code,r.designation||"EAN inconnu",r.article_code?"RECONNU":"A_VERIFIER",new Date(r.scanned_at).toISOString(),r.agent,new Date(r.exercise_date).toISOString(),r.status,r.photo])].map(row=>row.map(quote).join(";"));
+  return new NextResponse("\uFEFF"+lines.join("\r\n"),{headers:{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":`attachment; filename=comptage-${new Date().toISOString().slice(0,10)}.csv`,"Cache-Control":"no-store"}});
+}
